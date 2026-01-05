@@ -1,0 +1,43 @@
+{
+  "columns": [
+    "backbone_length",
+    "sum_charge",
+    "max_charge",
+    "min_charge",
+    "std_charge",
+    "mean_length",
+    "std_length",
+    "max_S_block",
+    "max_E_block",
+    "transitions",
+    "max_block_size",
+    "mean_block_size",
+    "std_block_size",
+    "blockiness",
+    "gini",
+    "max_fft_value",
+    "mean_fft_value",
+    "sum_fft_value",
+    "std_fft_value",
+    "hydrophobic_ratio",
+    "harwoods_blockiness",
+    "mayo_lewis"
+  ],
+  "hidden_sizes": [
+    128,
+    128,
+    128
+  ],
+  "dropout": 0.2,
+  "pipeline": "mlp_area_prep.joblib",
+  "model": "mlp_area.pt",
+  "input_dim": 22,
+  "epochs_trained": 869,
+  "target": "area",
+  "metrics": {
+    "epochs_trained": 869,
+    "rmse": 634.6445218879418,
+    "mae": 482.7461892621008,
+    "r2": 0.9478381101616931
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "columns": [
+    "backbone_length",
+    "mean_charge",
+    "max_charge",
+    "min_charge",
+    "std_charge",
+    "mean_length",
+    "std_length",
+    "max_S_block",
+    "max_E_block",
+    "transitions",
+    "max_block_size",
+    "mean_block_size",
+    "std_block_size",
+    "blockiness",
+    "gini",
+    "max_fft_value",
+    "mean_fft_value",
+    "sum_fft_value",
+    "std_fft_value",
+    "hydrophobic_ratio",
+    "harwoods_blockiness",
+    "mayo_lewis"
+  ],
+  "hidden_sizes": [
+    128,
+    128,
+    128
+  ],
+  "dropout": 0.2,
+  "pipeline": "mlp_rdf_prep.joblib",
+  "model": "mlp_rdf.pt",
+  "input_dim": 22,
+  "epochs_trained": 278,
+  "target": "rdf",
+  "metrics": {
+    "epochs_trained": 278,
+    "rmse": 0.04382457377560955,
+    "mae": 0.03597598637411457,
+    "r2": 0.94393099126101
+  }
+}
