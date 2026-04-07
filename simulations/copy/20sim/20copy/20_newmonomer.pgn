@@ -1,0 +1,58 @@
+package require psfgen
+
+
+
+topology topology
+
+
+
+for {set x 1} {$x <=20} {incr x} {
+set ll [expr $x]
+segment seg$ll {pdb A_$x.pdb}
+
+}
+
+
+segment seg21 {pdb BP41.pdb}
+
+
+segment seg22 {pdb BP42.pdb}
+
+for {set x 1} {$x <=13} {incr x} {
+set ll [expr 22+$x]
+segment seg$ll {pdb W_$x.pdb}
+
+}
+
+
+
+
+
+
+for {set x 1} {$x <=20} {incr x} {
+set gg [expr $x]
+coordpdb A_$x.pdb seg$gg
+
+}
+
+
+coordpdb BP41.pdb seg21
+
+coordpdb BP42.pdb seg22
+
+
+for {set x 1} {$x <=13} {incr x} {
+set gg [expr 22+$x]
+coordpdb W_$x.pdb seg$gg
+
+}
+
+
+
+guesscoord
+
+regenerate angles dihedrals
+
+writepdb 20_interfaceafterpgn.pdb
+writepsf 20_interfaceafterpgn.psf
+  

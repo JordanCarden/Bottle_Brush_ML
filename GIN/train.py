@@ -595,7 +595,7 @@ def main() -> None:
     parser.add_argument(
         "--patience",
         type=int,
-        default=500,
+        default=250,
         help="Patience for early stopping during cross-validation.",
     )
     parser.add_argument(

@@ -3,7 +3,8 @@
 
 This script is intended for the "are these test sets out-of-distribution?" story:
 it embeds bottlebrush *input* descriptors (no targets, no errors) into 2D using
-UMAP, then overlays the categorical and extreme sets on top of the random set.
+UMAP, then overlays the categorical and optimized sets on top of the random set.
+Samples from extreme_test_set_1/2 are combined into a single "Optimized" group.
 
 By default:
   - Features are engineered from the same "Input List" strings used elsewhere.
@@ -51,20 +52,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--categorical-csv",
         type=Path,
-        default=REPO_ROOT / "test_set.csv",
-        help="Categorical/structured raw CSV (default: test_set.csv).",
+        default=REPO_ROOT / "data" / "test_set.csv",
+        help="Categorical/structured raw CSV (default: data/test_set.csv).",
     )
     parser.add_argument(
         "--extreme-1-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_1.csv",
-        help="Extreme 1 raw CSV (default: extreme_test_set_1.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_1.csv",
+        help="Optimized set (part 1) raw CSV (default: data/extreme_test_set_1.csv).",
     )
     parser.add_argument(
         "--extreme-2-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_2.csv",
-        help="Extreme 2 raw CSV (default: extreme_test_set_2.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_2.csv",
+        help="Optimized set (part 2) raw CSV (default: data/extreme_test_set_2.csv).",
     )
     parser.add_argument(
         "--fit-on",
@@ -140,8 +141,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--dpi",
         type=int,
-        default=300,
-        help="DPI for PNG output (default: 300).",
+        default=600,
+        help="DPI for PNG output (default: 600).",
     )
     parser.add_argument(
         "--random-marker-size",
@@ -317,15 +318,7 @@ def _dataset_styles(
             "s": special_marker_size,
             "linewidths": 0.6,
         },
-        "Extreme 1": {
-            "marker": "s",
-            "facecolor": "#FF7F0E",
-            "edgecolor": "black",
-            "alpha": 1.0,
-            "s": special_marker_size,
-            "linewidths": 0.6,
-        },
-        "Extreme 2": {
+        "Optimized": {
             "marker": "s",
             "facecolor": "#D62728",
             "edgecolor": "black",
@@ -355,13 +348,20 @@ def plot_umap_overlay(
 
     plt.rcParams.update(
         {
-            "font.family": "serif",
-            "font.serif": ["DejaVu Serif"],
-            "mathtext.fontset": "dejavuserif",
-            "font.size": 8,
+            "font.family": "Nimbus Sans",
+            "mathtext.fontset": "custom",
+            "mathtext.rm": "Nimbus Sans",
+            "mathtext.it": "Nimbus Sans",
+            "mathtext.bf": "Nimbus Sans",
+            "mathtext.sf": "Nimbus Sans",
+            "mathtext.tt": "Nimbus Sans",
+            "mathtext.cal": "Nimbus Sans",
+            "font.size": 9,
             "axes.labelsize": 9,
-            "xtick.labelsize": 7,
-            "ytick.labelsize": 7,
+            "axes.titlesize": 9,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
             "axes.linewidth": 1.2,
             "figure.facecolor": "white",
             "axes.facecolor": "white",
@@ -378,7 +378,7 @@ def plot_umap_overlay(
     fig, ax = plt.subplots(figsize=(figwidth, figheight))
 
     # Plot random first as a background cloud.
-    order = ["Random", "Categorical", "Extreme 1", "Extreme 2"]
+    order = ["Random", "Categorical", "Optimized"]
     for label in order:
         mask = df["dataset"].astype(str) == label
         if not mask.any():
@@ -433,25 +433,15 @@ def plot_umap_overlay(
                 [0],
                 marker="s",
                 linestyle="",
-                label="Extreme 1",
-                markerfacecolor=styles["Extreme 1"]["facecolor"],
-                markeredgecolor="black",
-                markersize=6,
-            ),
-            Line2D(
-                [0],
-                [0],
-                marker="s",
-                linestyle="",
-                label="Extreme 2",
-                markerfacecolor=styles["Extreme 2"]["facecolor"],
+                label="Optimized",
+                markerfacecolor=styles["Optimized"]["facecolor"],
                 markeredgecolor="black",
                 markersize=6,
             ),
         ]
 
         if legend == "inside":
-            ax.legend(handles=handles, loc="best", frameon=False, fontsize=8)
+            ax.legend(handles=handles, loc="best", frameon=False, fontsize=9)
         else:
             bbox = (0.5, -0.18) if legend == "below" else (0.5, 1.15)
             ax.legend(
@@ -460,7 +450,7 @@ def plot_umap_overlay(
                 bbox_to_anchor=bbox,
                 frameon=False,
                 ncol=int(legend_cols),
-                fontsize=8,
+                fontsize=9,
                 columnspacing=1.2,
                 handletextpad=0.4,
             )
@@ -478,8 +468,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     datasets = [
         ("Random", resolve_repo_path(args.random_csv)),
         ("Categorical", resolve_repo_path(args.categorical_csv)),
-        ("Extreme 1", resolve_repo_path(args.extreme_1_csv)),
-        ("Extreme 2", resolve_repo_path(args.extreme_2_csv)),
+        ("Optimized", resolve_repo_path(args.extreme_1_csv)),
+        ("Optimized", resolve_repo_path(args.extreme_2_csv)),
     ]
     df_all = _stack_datasets(datasets)
 

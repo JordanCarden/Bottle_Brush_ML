@@ -2,16 +2,16 @@
 """PCA projection of LR/MLP engineered architecture descriptors (with overlays).
 
 This is a companion to `umap_architecture_descriptors.py` that uses PCA instead
-of UMAP, and (optionally) summarizes "out-of-distribution-ness" via nearest-
-neighbor distance to the Random set in the same standardized PCA space.
+of UMAP. The plot layout matches the t-SNE/UMAP figures: a single PC1-vs-PC2
+overlay scatter.
 
 By default:
   - Features are engineered from the same "Input List" strings used elsewhere.
   - Preprocessing follows the LR pipeline's monotonic transforms + scaling.
   - PCA is fit on the Random set and used to transform the other sets.
-  - A two-panel figure is produced:
-      (left) PC1 vs PC2 overlay scatter
-      (right) boxplot of nearest-neighbor distance to Random (PCA space)
+
+Extreme samples from extreme_test_set_1/2 are combined into a single
+"Extreme" group for plotting.
 
 Example:
   ./venv/bin/python FIGURES/clustering_with_extremes/pca_architecture_descriptors.py
@@ -30,7 +30,6 @@ import numpy as np
 import pandas as pd
 from sklearn.decomposition import PCA
 from sklearn.impute import SimpleImputer
-from sklearn.neighbors import NearestNeighbors
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
@@ -54,20 +53,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--categorical-csv",
         type=Path,
-        default=REPO_ROOT / "test_set.csv",
-        help="Categorical/structured raw CSV (default: test_set.csv).",
+        default=REPO_ROOT / "data" / "test_set.csv",
+        help="Categorical/structured raw CSV (default: data/test_set.csv).",
     )
     parser.add_argument(
         "--extreme-1-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_1.csv",
-        help="Extreme 1 raw CSV (default: extreme_test_set_1.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_1.csv",
+        help="Extreme set (part 1) raw CSV (default: data/extreme_test_set_1.csv).",
     )
     parser.add_argument(
         "--extreme-2-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_2.csv",
-        help="Extreme 2 raw CSV (default: extreme_test_set_2.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_2.csv",
+        help="Extreme set (part 2) raw CSV (default: data/extreme_test_set_2.csv).",
     )
     parser.add_argument(
         "--fit-on",
@@ -84,7 +83,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--pca-components",
         type=int,
         default=20,
-        help="Number of PCA components for distance calculations (min 2; default: 20).",
+        help="Number of PCA components to fit (min 2; default: 20).",
     )
     parser.add_argument(
         "--seed",
@@ -108,7 +107,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--save-embedding-csv",
         type=Path,
         default=None,
-        help="Optional path to write PC1/PC2 and NN distance as CSV.",
+        help="Optional path to write PC1/PC2 coordinates as CSV.",
     )
     parser.add_argument(
         "--figwidth",
@@ -125,8 +124,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--dpi",
         type=int,
-        default=300,
-        help="DPI for PNG output (default: 300).",
+        default=600,
+        help="DPI for PNG output (default: 600).",
     )
     parser.add_argument(
         "--random-marker-size",
@@ -248,26 +247,6 @@ def _prep_and_pca(
     return pca, X_fit_pca, X_all_pca
 
 
-def _nn_distance_to_random(
-    df_all: pd.DataFrame,
-    X_all_pca: np.ndarray,
-    *,
-    random_label: str = "Random",
-) -> np.ndarray:
-    random_mask = df_all["dataset"].astype(str).eq(random_label).to_numpy()
-    X_random = X_all_pca[random_mask]
-    if X_random.shape[0] < 2:
-        raise ValueError("Random dataset must contain at least 2 samples for NN distances.")
-
-    nn = NearestNeighbors(n_neighbors=2, metric="euclidean")
-    nn.fit(X_random)
-    dists, _ = nn.kneighbors(X_all_pca)
-    # For random points, neighbor 0 is itself (distance 0); use neighbor 1 instead.
-    distances = dists[:, 0].copy()
-    distances[random_mask] = dists[random_mask, 1]
-    return distances
-
-
 def _dataset_styles(
     random_alpha: float,
     random_marker_size: float,
@@ -290,15 +269,7 @@ def _dataset_styles(
             "s": special_marker_size,
             "linewidths": 0.6,
         },
-        "Extreme 1": {
-            "marker": "s",
-            "facecolor": "#FF7F0E",
-            "edgecolor": "black",
-            "alpha": 1.0,
-            "s": special_marker_size,
-            "linewidths": 0.6,
-        },
-        "Extreme 2": {
+        "Extreme": {
             "marker": "s",
             "facecolor": "#D62728",
             "edgecolor": "black",
@@ -309,7 +280,7 @@ def _dataset_styles(
     }
 
 
-def plot_pca_with_nn_panel(
+def plot_pca_overlay(
     df: pd.DataFrame,
     *,
     explained_var: Tuple[float, float],
@@ -329,13 +300,20 @@ def plot_pca_with_nn_panel(
 
     plt.rcParams.update(
         {
-            "font.family": "serif",
-            "font.serif": ["DejaVu Serif"],
-            "mathtext.fontset": "dejavuserif",
-            "font.size": 8,
+            "font.family": "Nimbus Sans",
+            "mathtext.fontset": "custom",
+            "mathtext.rm": "Nimbus Sans",
+            "mathtext.it": "Nimbus Sans",
+            "mathtext.bf": "Nimbus Sans",
+            "mathtext.sf": "Nimbus Sans",
+            "mathtext.tt": "Nimbus Sans",
+            "mathtext.cal": "Nimbus Sans",
+            "font.size": 9,
             "axes.labelsize": 9,
-            "xtick.labelsize": 7,
-            "ytick.labelsize": 7,
+            "axes.titlesize": 9,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
             "axes.linewidth": 1.2,
             "figure.facecolor": "white",
             "axes.facecolor": "white",
@@ -349,24 +327,18 @@ def plot_pca_with_nn_panel(
         special_marker_size=special_marker_size,
     )
 
-    fig, (ax_scatter, ax_box) = plt.subplots(
-        1,
-        2,
-        figsize=(figwidth, figheight),
-        gridspec_kw={"width_ratios": [2.2, 1.2]},
-    )
+    fig, ax = plt.subplots(figsize=(figwidth, figheight))
 
-    # Scatter panel.
-    order = ["Random", "Categorical", "Extreme 1", "Extreme 2"]
+    order = ["Random", "Categorical", "Extreme"]
     for label in order:
         mask = df["dataset"].astype(str) == label
         if not mask.any():
             continue
         style = styles.get(label, {})
         if label == "Random":
-            ax_scatter.scatter(df.loc[mask, "pc1"], df.loc[mask, "pc2"], **style)
+            ax.scatter(df.loc[mask, "pc1"], df.loc[mask, "pc2"], **style)
         else:
-            ax_scatter.scatter(
+            ax.scatter(
                 df.loc[mask, "pc1"],
                 df.loc[mask, "pc2"],
                 marker=style["marker"],
@@ -378,45 +350,9 @@ def plot_pca_with_nn_panel(
                 zorder=3,
             )
 
-    ax_scatter.set_xlabel(f"PC1 ({explained_var[0]*100:.1f}%)")
-    ax_scatter.set_ylabel(f"PC2 ({explained_var[1]*100:.1f}%)")
-    for spine in ax_scatter.spines.values():
-        spine.set_linewidth(1.2)
-
-    # NN-distance boxplot panel.
-    data = []
-    labels = []
-    for label in order:
-        mask = df["dataset"].astype(str) == label
-        if not mask.any():
-            continue
-        data.append(df.loc[mask, "nn_dist"].to_numpy(dtype=float))
-        labels.append(label)
-
-    boxplot_kwargs = dict(
-        patch_artist=True,
-        widths=0.65,
-        showfliers=False,
-        medianprops={"color": "black", "linewidth": 1.2},
-        boxprops={"linewidth": 1.0},
-        whiskerprops={"linewidth": 1.0},
-        capprops={"linewidth": 1.0},
-    )
-    # Matplotlib renamed 'labels' -> 'tick_labels' in 3.9; keep compatibility.
-    try:
-        box = ax_box.boxplot(data, tick_labels=labels, **boxplot_kwargs)
-    except TypeError:  # pragma: no cover
-        box = ax_box.boxplot(data, labels=labels, **boxplot_kwargs)
-    facecolors = [styles[l].get("facecolor", styles[l].get("color", "#5F5F5F")) for l in labels]
-    alphas = [0.35 if l == "Random" else 0.9 for l in labels]
-    for patch, fc, a in zip(box["boxes"], facecolors, alphas, strict=False):
-        patch.set_facecolor(fc)
-        patch.set_alpha(a)
-        patch.set_edgecolor("black")
-
-    ax_box.set_ylabel("NN distance to Random\n(PCA space)")
-    ax_box.tick_params(axis="x", rotation=45)
-    for spine in ax_box.spines.values():
+    ax.set_xlabel(f"PC1 ({explained_var[0]*100:.1f}%)")
+    ax.set_ylabel(f"PC2 ({explained_var[1]*100:.1f}%)")
+    for spine in ax.spines.values():
         spine.set_linewidth(1.2)
 
     # Legend handling.
@@ -448,63 +384,33 @@ def plot_pca_with_nn_panel(
                 [0],
                 marker="s",
                 linestyle="",
-                label="Extreme 1",
-                markerfacecolor=styles["Extreme 1"]["facecolor"],
-                markeredgecolor="black",
-                markersize=6,
-            ),
-            Line2D(
-                [0],
-                [0],
-                marker="s",
-                linestyle="",
-                label="Extreme 2",
-                markerfacecolor=styles["Extreme 2"]["facecolor"],
+                label="Extreme",
+                markerfacecolor=styles["Extreme"]["facecolor"],
                 markeredgecolor="black",
                 markersize=6,
             ),
         ]
 
         if legend == "inside":
-            ax_scatter.legend(handles=handles, loc="best", frameon=False, fontsize=8)
+            ax.legend(handles=handles, loc="best", frameon=False, fontsize=9)
         else:
-            loc = "lower center" if legend == "above" else "upper center"
-            bbox = (0.5, 1.12) if legend == "above" else (0.5, -0.18)
-            fig.legend(
+            bbox = (0.5, -0.18) if legend == "below" else (0.5, 1.15)
+            ax.legend(
                 handles=handles,
-                loc=loc,
+                loc="upper center" if legend == "below" else "lower center",
                 bbox_to_anchor=bbox,
                 frameon=False,
                 ncol=int(legend_cols),
-                fontsize=8,
+                fontsize=9,
                 columnspacing=1.2,
                 handletextpad=0.4,
             )
-
-    if legend == "below":
-        fig.subplots_adjust(bottom=0.3)
-    elif legend == "above":
-        fig.subplots_adjust(top=0.83)
+            fig.subplots_adjust(bottom=0.27 if legend == "below" else 0.12, top=0.9)
 
     fig.tight_layout()
     fig.savefig(outpath, dpi=int(dpi), bbox_inches="tight")
     plt.close(fig)
     return outpath
-
-
-def _print_nn_summary(df: pd.DataFrame) -> None:
-    order = ["Random", "Categorical", "Extreme 1", "Extreme 2"]
-    print("Nearest-neighbor distance to Random (PCA space):")
-    for label in order:
-        mask = df["dataset"].astype(str).eq(label)
-        if not mask.any():
-            continue
-        values = df.loc[mask, "nn_dist"].to_numpy(dtype=float)
-        print(
-            f"{label:11s} n={values.size:4d} "
-            f"median={np.median(values):.3f} p90={np.percentile(values,90):.3f} "
-            f"max={np.max(values):.3f}"
-        )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -513,8 +419,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     datasets = [
         ("Random", resolve_repo_path(args.random_csv)),
         ("Categorical", resolve_repo_path(args.categorical_csv)),
-        ("Extreme 1", resolve_repo_path(args.extreme_1_csv)),
-        ("Extreme 2", resolve_repo_path(args.extreme_2_csv)),
+        ("Extreme", resolve_repo_path(args.extreme_1_csv)),
+        ("Extreme", resolve_repo_path(args.extreme_2_csv)),
     ]
     df_all = _stack_datasets(datasets)
 
@@ -539,19 +445,14 @@ def main(argv: Sequence[str] | None = None) -> int:
         pca_components=int(args.pca_components),
     )
 
-    nn_dist = _nn_distance_to_random(df_all, X_all_pca, random_label="Random")
-
     df_plot = df_all.copy()
     df_plot["pc1"] = X_all_pca[:, 0]
     df_plot["pc2"] = X_all_pca[:, 1]
-    df_plot["nn_dist"] = nn_dist
-
-    _print_nn_summary(df_plot)
 
     explained = (float(pca.explained_variance_ratio_[0]), float(pca.explained_variance_ratio_[1]))
 
     outdir = resolve_repo_path(args.outdir)
-    outpath = plot_pca_with_nn_panel(
+    outpath = plot_pca_overlay(
         df_plot,
         explained_var=explained,
         outdir=outdir,
@@ -570,7 +471,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.save_embedding_csv is not None:
         csv_path = resolve_repo_path(args.save_embedding_csv)
         csv_path.parent.mkdir(parents=True, exist_ok=True)
-        keep_cols = ["dataset", "pc1", "pc2", "nn_dist"]
+        keep_cols = ["dataset", "pc1", "pc2"]
         if "Input List" in df_plot.columns:
             keep_cols.insert(0, "Input List")
         df_plot.loc[:, keep_cols].to_csv(csv_path, index=False)

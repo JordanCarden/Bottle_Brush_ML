@@ -3,8 +3,7 @@
 
 Each panel corresponds to one target (Area, R_g, RDF Peak) and overlays:
   - Random (train-like) samples: light gray circles (many points)
-  - Extreme 1: orange squares
-  - Extreme 2: red squares
+  - Optimized: red squares (combined Extreme 1 + Extreme 2)
   - Categorical: green triangles
 
 The plot includes a dashed y=x reference line in each panel.
@@ -51,20 +50,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--extreme-1-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_1.csv",
-        help="Ground-truth CSV for Extreme 1 (default: extreme_test_set_1.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_1.csv",
+        help="Ground-truth CSV for optimized set (part 1) (default: data/extreme_test_set_1.csv).",
     )
     parser.add_argument(
         "--extreme-2-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_2.csv",
-        help="Ground-truth CSV for Extreme 2 (default: extreme_test_set_2.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_2.csv",
+        help="Ground-truth CSV for optimized set (part 2) (default: data/extreme_test_set_2.csv).",
     )
     parser.add_argument(
         "--categorical-csv",
         type=Path,
-        default=REPO_ROOT / "test_set.csv",
-        help="Ground-truth CSV for categorical set (default: test_set.csv).",
+        default=REPO_ROOT / "data" / "test_set.csv",
+        help="Ground-truth CSV for categorical set (default: data/test_set.csv).",
     )
     parser.add_argument(
         "--categorical-dirname",
@@ -99,8 +98,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--dpi",
         type=int,
-        default=300,
-        help="DPI for PNG output (default: 300).",
+        default=600,
+        help="DPI for PNG output (default: 600).",
     )
     parser.add_argument(
         "--random-marker-size",
@@ -147,9 +146,9 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--score-dataset",
         "--rmse-dataset",
-        choices=("random", "extreme_1", "extreme_2", "categorical", "all", "none"),
-        default="random",
-        help="Which dataset to compute R^2 over for the per-panel annotation (default: random).",
+        choices=("random", "extreme", "extreme_1", "extreme_2", "categorical", "all", "none"),
+        default="none",
+        help=argparse.SUPPRESS,  # Deprecated: R² annotation removed from plots.
     )
     return parser.parse_args(argv)
 
@@ -381,14 +380,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     # Match the general styling used in `plot_bars.py` / other FIGURES scripts.
     plt.rcParams.update(
         {
-            "font.family": "serif",
-            "font.serif": ["DejaVu Serif"],
-            "mathtext.fontset": "dejavuserif",
-            "font.size": 8,
+            "font.family": "Nimbus Sans",
+            "mathtext.fontset": "custom",
+            "mathtext.rm": "Nimbus Sans",
+            "mathtext.it": "Nimbus Sans",
+            "mathtext.bf": "Nimbus Sans",
+            "mathtext.sf": "Nimbus Sans",
+            "mathtext.tt": "Nimbus Sans",
+            "mathtext.cal": "Nimbus Sans",
+            "font.size": 9,
             "axes.labelsize": 9,
             "axes.titlesize": 9,
-            "xtick.labelsize": 7,
-            "ytick.labelsize": 7,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
             "axes.linewidth": 1.2,
             "figure.facecolor": "white",
             "axes.facecolor": "white",
@@ -398,9 +403,9 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     colors = {
         "random": str(args.random_color),
-        "extreme_1": "#F59E0B",
-        "extreme_2": "#EF4444",
-        "categorical": "#10B981",
+        # Keep marker colors aligned with FIGURES/clustering_with_extremes/umap_architecture_descriptors.py
+        "extreme": "#D62728",
+        "categorical": "#2CA02C",
     }
 
     random_marker_size = float(args.random_marker_size)
@@ -437,21 +442,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             marker="s",
             linestyle="None",
             markersize=legend_special_ms,
-            markerfacecolor=colors["extreme_1"],
+            markerfacecolor=colors["extreme"],
             markeredgecolor="black",
             markeredgewidth=0.6,
-            label="Extreme 1",
-        ),
-        Line2D(
-            [0],
-            [0],
-            marker="s",
-            linestyle="None",
-            markersize=legend_special_ms,
-            markerfacecolor=colors["extreme_2"],
-            markeredgecolor="black",
-            markeredgewidth=0.6,
-            label="Extreme 2",
+            label="Optimized",
         ),
         Line2D(
             [0],
@@ -474,58 +468,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         ex2_true, ex2_pred = _load_set_true_pred(
             extreme_2_csv, extreme_2_pred, target_column=target_col
         )
+        ex_true = np.concatenate([ex1_true, ex2_true])
+        ex_pred = np.concatenate([ex1_pred, ex2_pred])
         cat_true, cat_pred = _load_set_true_pred(
             categorical_csv, categorical_pred, target_column=target_col
         )
 
         if target_col == "RDF Peak":
             rand_pred = _lock_pred_at_zero_for_true_zero(rand_true, rand_pred)
-            ex1_pred = _lock_pred_at_zero_for_true_zero(ex1_true, ex1_pred)
-            ex2_pred = _lock_pred_at_zero_for_true_zero(ex2_true, ex2_pred)
+            ex_pred = _lock_pred_at_zero_for_true_zero(ex_true, ex_pred)
             cat_pred = _lock_pred_at_zero_for_true_zero(cat_true, cat_pred)
 
         data_min, data_max = _data_limits(
             rand_true,
             rand_pred,
-            ex1_true,
-            ex1_pred,
-            ex2_true,
-            ex2_pred,
+            ex_true,
+            ex_pred,
             cat_true,
             cat_pred,
         )
         lim_lo, lim_hi, ticks = _nice_equal_ticks(data_min, data_max, nbins=4, max_ticks=5)
 
-        if args.score_dataset != "none":
-            if args.score_dataset == "random":
-                r2_val = _r2(rand_true, rand_pred)
-                r2_label = r"$R^2$"
-            elif args.score_dataset == "extreme_1":
-                r2_val = _r2(ex1_true, ex1_pred)
-                r2_label = r"$R^2$ (E1)"
-            elif args.score_dataset == "extreme_2":
-                r2_val = _r2(ex2_true, ex2_pred)
-                r2_label = r"$R^2$ (E2)"
-            elif args.score_dataset == "categorical":
-                r2_val = _r2(cat_true, cat_pred)
-                r2_label = r"$R^2$ (Cat)"
-            else:
-                all_true = np.concatenate([rand_true, ex1_true, ex2_true, cat_true], axis=0)
-                all_pred = np.concatenate([rand_pred, ex1_pred, ex2_pred, cat_pred], axis=0)
-                r2_val = _r2(all_true, all_pred)
-                r2_label = r"$R^2$ (All)"
-
-            ax.text(
-                0.02,
-                0.98,
-                f"{r2_label}: {_format_r2(r2_val)}",
-                transform=ax.transAxes,
-                ha="left",
-                va="top",
-                fontsize=7,
-                bbox=dict(boxstyle="round,pad=0.2", facecolor="white", edgecolor="none", alpha=0.7),
-                zorder=5,
-            )
+        # Intentionally omit per-panel R² annotation: this figure overlays multiple
+        # datasets, so a single R² label is easy to misread.
 
         ax.scatter(
             rand_true,
@@ -538,22 +503,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             zorder=1,
         )
         ax.scatter(
-            ex1_true,
-            ex1_pred,
+            ex_true,
+            ex_pred,
             s=special_marker_size,
             marker="s",
-            facecolor=colors["extreme_1"],
-            edgecolor="black",
-            linewidth=0.5,
-            alpha=0.95,
-            zorder=3,
-        )
-        ax.scatter(
-            ex2_true,
-            ex2_pred,
-            s=special_marker_size,
-            marker="s",
-            facecolor=colors["extreme_2"],
+            facecolor=colors["extreme"],
             edgecolor="black",
             linewidth=0.5,
             alpha=0.95,

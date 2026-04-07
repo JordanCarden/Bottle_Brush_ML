@@ -3,7 +3,8 @@
 
 t-SNE is non-parametric (no reliable out-of-sample transform), so this script
 fits t-SNE on the concatenated dataset (Random + Categorical + Extreme sets)
-and then overlays points by dataset label.
+and then overlays points by dataset label. Extreme samples from
+extreme_test_set_1/2 are combined into a single "Extreme" group.
 
 The input representation is identical to the LR/MLP engineered descriptor set:
 we engineer features from "Input List", apply the same monotonic transforms as
@@ -50,20 +51,20 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--categorical-csv",
         type=Path,
-        default=REPO_ROOT / "test_set.csv",
-        help="Categorical/structured raw CSV (default: test_set.csv).",
+        default=REPO_ROOT / "data" / "test_set.csv",
+        help="Categorical/structured raw CSV (default: data/test_set.csv).",
     )
     parser.add_argument(
         "--extreme-1-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_1.csv",
-        help="Extreme 1 raw CSV (default: extreme_test_set_1.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_1.csv",
+        help="Extreme set (part 1) raw CSV (default: data/extreme_test_set_1.csv).",
     )
     parser.add_argument(
         "--extreme-2-csv",
         type=Path,
-        default=REPO_ROOT / "extreme_test_set_2.csv",
-        help="Extreme 2 raw CSV (default: extreme_test_set_2.csv).",
+        default=REPO_ROOT / "data" / "extreme_test_set_2.csv",
+        help="Extreme set (part 2) raw CSV (default: data/extreme_test_set_2.csv).",
     )
     parser.add_argument(
         "--include-redundant",
@@ -145,8 +146,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--dpi",
         type=int,
-        default=300,
-        help="DPI for PNG output (default: 300).",
+        default=600,
+        help="DPI for PNG output (default: 600).",
     )
     parser.add_argument(
         "--random-marker-size",
@@ -259,15 +260,7 @@ def _dataset_styles(
             "s": special_marker_size,
             "linewidths": 0.6,
         },
-        "Extreme 1": {
-            "marker": "s",
-            "facecolor": "#FF7F0E",
-            "edgecolor": "black",
-            "alpha": 1.0,
-            "s": special_marker_size,
-            "linewidths": 0.6,
-        },
-        "Extreme 2": {
+        "Extreme": {
             "marker": "s",
             "facecolor": "#D62728",
             "edgecolor": "black",
@@ -297,13 +290,20 @@ def plot_tsne_overlay(
 
     plt.rcParams.update(
         {
-            "font.family": "serif",
-            "font.serif": ["DejaVu Serif"],
-            "mathtext.fontset": "dejavuserif",
-            "font.size": 8,
+            "font.family": "Nimbus Sans",
+            "mathtext.fontset": "custom",
+            "mathtext.rm": "Nimbus Sans",
+            "mathtext.it": "Nimbus Sans",
+            "mathtext.bf": "Nimbus Sans",
+            "mathtext.sf": "Nimbus Sans",
+            "mathtext.tt": "Nimbus Sans",
+            "mathtext.cal": "Nimbus Sans",
+            "font.size": 9,
             "axes.labelsize": 9,
-            "xtick.labelsize": 7,
-            "ytick.labelsize": 7,
+            "axes.titlesize": 9,
+            "xtick.labelsize": 9,
+            "ytick.labelsize": 9,
+            "legend.fontsize": 9,
             "axes.linewidth": 1.2,
             "figure.facecolor": "white",
             "axes.facecolor": "white",
@@ -319,7 +319,7 @@ def plot_tsne_overlay(
 
     fig, ax = plt.subplots(figsize=(figwidth, figheight))
 
-    order = ["Random", "Categorical", "Extreme 1", "Extreme 2"]
+    order = ["Random", "Categorical", "Extreme"]
     for label in order:
         mask = df["dataset"].astype(str) == label
         if not mask.any():
@@ -374,25 +374,15 @@ def plot_tsne_overlay(
                 [0],
                 marker="s",
                 linestyle="",
-                label="Extreme 1",
-                markerfacecolor=styles["Extreme 1"]["facecolor"],
-                markeredgecolor="black",
-                markersize=6,
-            ),
-            Line2D(
-                [0],
-                [0],
-                marker="s",
-                linestyle="",
-                label="Extreme 2",
-                markerfacecolor=styles["Extreme 2"]["facecolor"],
+                label="Extreme",
+                markerfacecolor=styles["Extreme"]["facecolor"],
                 markeredgecolor="black",
                 markersize=6,
             ),
         ]
 
         if legend == "inside":
-            ax.legend(handles=handles, loc="best", frameon=False, fontsize=8)
+            ax.legend(handles=handles, loc="best", frameon=False, fontsize=9)
         else:
             bbox = (0.5, -0.18) if legend == "below" else (0.5, 1.15)
             ax.legend(
@@ -401,7 +391,7 @@ def plot_tsne_overlay(
                 bbox_to_anchor=bbox,
                 frameon=False,
                 ncol=int(legend_cols),
-                fontsize=8,
+                fontsize=9,
                 columnspacing=1.2,
                 handletextpad=0.4,
             )
@@ -426,8 +416,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     datasets = [
         ("Random", resolve_repo_path(args.random_csv)),
         ("Categorical", resolve_repo_path(args.categorical_csv)),
-        ("Extreme 1", resolve_repo_path(args.extreme_1_csv)),
-        ("Extreme 2", resolve_repo_path(args.extreme_2_csv)),
+        ("Extreme", resolve_repo_path(args.extreme_1_csv)),
+        ("Extreme", resolve_repo_path(args.extreme_2_csv)),
     ]
     df_all = _stack_datasets(datasets)
 
@@ -501,4 +491,3 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

@@ -1,0 +1,29 @@
+tolerance 2.0 
+
+output 20_interface.pdb
+
+structure 20_polymers.pdb
+ centerofmass
+ fixed 200. 200. 103. 0. 0. 0.
+end structure
+
+
+
+
+structure waterBP4.pdb
+  number 12800
+  inside box 0. 0. 0. 400. 400. 100.
+end structure
+
+
+structure water.pdb
+  number 128000
+  inside box 0. 0. 0. 400. 400. 100.
+end structure
+
+
+
+
+
+
+

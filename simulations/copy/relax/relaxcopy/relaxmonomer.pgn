@@ -1,0 +1,34 @@
+package require psfgen
+
+
+
+topology topology
+
+
+segment seg1 {pdb output.pdb}
+#segment seg2 {pdb B.pdb}
+#segment seg3 {pdb C.pdb}
+
+
+
+
+
+
+
+
+coordpdb output.pdb seg1
+#coordpdb B.pdb seg2
+#coordpdb C.pdb seg3
+
+
+
+
+
+
+guesscoord
+
+regenerate angles dihedrals
+
+writepdb relaxafterpgn.pdb
+writepsf relaxafterpgn.psf
+  

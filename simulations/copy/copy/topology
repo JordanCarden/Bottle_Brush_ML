@@ -1,0 +1,62 @@
+MASS    1    C1        72
+MASS    1    EO        45
+MASS    1    SCY       45
+MASS    1    P4        72
+MASS    1    BP4       72
+MASS    1    Qa        72
+MASS    1    Q0        72
+MASS    1    C4        72
+
+RESI BEN         0
+GROUP
+ATOM B1    SCY   0
+ATOM B2    SCY   0
+ATOM B3    SCY   0
+
+BOND B1 B2   B2 B3  B1 B3
+
+RESI HOH         0
+ATOM    W   P4    0.00
+
+RESI AF          0
+ATOM    WAF   BP4    0.00
+
+RESI LIG          0
+GROUP
+ATOM    C1      C1    0
+ATOM    P11     C4    0
+ATOM    M11     Qa    -1
+ATOM    N11     Q0    1
+ATOM    P12     C4    0
+ATOM    M12     Qa    -1
+ATOM    N12     Q0    1
+ATOM    C2      C1    0
+ATOM    C3      C1    0
+ATOM    C4      C1    0
+ATOM    P41     C4    0
+ATOM    M41     Qa    -1
+ATOM    N41     Q0    1
+ATOM    P42     C4    0
+ATOM    M42     Qa    -1
+ATOM    N42     Q0    1
+ATOM    C5      C1    0
+ATOM    C6      C1    0
+ATOM    P61     C4    0
+ATOM    M61     Qa    -1
+ATOM    N61     Q0    1
+ATOM    P62     C4    0
+ATOM    M62     Qa    -1
+ATOM    N62     Q0    1
+ATOM    P63     C4    0
+ATOM    M63     Qa    -1
+ATOM    N63     Q0    1
+BOND  C1 P11  P11 P12
+BOND  P11 M11  P12 M12
+BOND  M11 N11  M12 N12
+BOND  C4 P41  P41 P42
+BOND  P41 M41  P42 M42
+BOND  M41 N41  M42 N42
+BOND  C6 P61  P61 P62  P62 P63
+BOND  P61 M61  P62 M62  P63 M63
+BOND  M61 N61  M62 N62  M63 N63
+BOND  C1 C2  C2 C3  C3 C4  C4 C5  C5 C6

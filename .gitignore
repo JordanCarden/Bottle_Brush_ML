@@ -36,6 +36,14 @@ MANIFEST
 pip-log.txt
 pip-delete-this-directory.txt
 
+# LaTeX build products
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+
 # Unit test / coverage reports
 htmlcov/
 .tox/
@@ -122,6 +130,7 @@ celerybeat.pid
 # Environments
 .env
 .venv
+.venv_plot/
 env/
 venv/
 ENV/
@@ -154,6 +163,10 @@ cython_debug/
 
 # Generated datasets
 processed/
+
+# Local simulation binaries
+simulations/NAMD_2.14_Linux-x86_64-multicore/
+simulations/NAMD_2.14_Linux-x86_64-multicore-CUDA/
 
 # PyCharm
 #  JetBrains specific template is maintained in a separate JetBrains.gitignore that can

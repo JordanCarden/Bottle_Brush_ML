@@ -1,0 +1,42 @@
+tolerance 2.0 
+
+output interface.pdb
+
+
+
+structure relax.pdb
+  number 1
+  inside box 0. 0. 0. 100. 100. 205.
+  atoms  1
+    below plane 0. 0. 1. 100.
+  end atoms
+  atoms 28
+    over plane 0. 0. 1. 105.
+  end atoms
+end structure
+
+
+
+structure benzene.pdb
+  number 6764
+  inside box 0. 0. 105. 100. 100. 205.
+end structure
+
+
+structure waterBP4.pdb
+  number 888
+  inside box 0. 0. 0. 100. 100. 100.
+end structure
+
+
+structure water.pdb
+  number 8000
+  inside box 0. 0. 0. 100. 100. 100.
+end structure
+
+
+
+
+
+
+
